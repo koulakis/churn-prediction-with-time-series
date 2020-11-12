@@ -73,6 +73,13 @@ class TransactionManager:
             self._create_table_from_csv(path, conn, engine, table_name, drop_old_table)
             self._stream_from_file_to_psql(path, conn, table_name)
 
+    def create_index_on_msno(self, path, table_name=None):
+        if table_name is None:
+            table_name = path.stem
+        with psycopg2.connect(**self.conn_dict) as conn:
+            with conn.cursor() as cursor:
+                self._execute_command(cursor, f'CREATE INDEX msno_idx_{table_name} ON {table_name} (msno);', conn)
+
     @staticmethod
     def _execute_command(cursor, command, conn):
         try:
