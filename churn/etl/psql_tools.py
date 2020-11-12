@@ -25,15 +25,14 @@ class TransactionManager:
             host: the hostname of the database server
             port: the database server port
         """
-        self.conn = psycopg2.connect(
+        self.conn_dict = dict(
             database=database,
             user=user,
             password=password,
             host=host,
             port=port)
 
-        conn_string = f'postgresql://{user}:{password}@{host}:{port}/{database}'
-        self.engine = create_engine(conn_string)
+        self.conn_string = f'postgresql://{user}:{password}@{host}:{port}/{database}'
 
     def pd_read_psql(self, query):
         """Query data from the database to a pandas dataframe.
@@ -47,15 +46,18 @@ class TransactionManager:
         if query.endswith(';'):
             query = query[:-1]
         copy_sql = f'COPY ({query}) TO STDOUT WITH CSV HEADER;'
-        try:
-            with self.conn.cursor() as cursor:
-                with io.StringIO() as cache:
-                    cursor.copy_expert(copy_sql, cache)
-                    cache.seek(0)
-                    return pd.read_csv(cache)
-        except Exception as e:
-            print(e)
-            self.conn.rollback()
+        with psycopg2.connect(**self.conn_dict) as conn:
+            try:
+                with conn.cursor() as cursor:
+                    with io.StringIO() as cache:
+                        cursor.copy_expert(copy_sql, cache)
+                        cache.seek(0)
+                        return pd.read_csv(cache)
+            except Exception as e:
+                print(e)
+                conn.rollback()
+            finally:
+                conn.close()
 
     def import_csv_to_table(self, path, table_name=None, drop_old_table=False):
         """Import a csv file to a table in the database.
@@ -68,8 +70,10 @@ class TransactionManager:
         path = Path(path)
         if table_name is None:
             table_name = path.stem
-        self._create_table_from_csv(path, self.conn, self.engine, table_name, drop_old_table)
-        self._stream_from_file_to_psql(path, self.conn, table_name)
+        with psycopg2.connect(**self.conn_dict) as conn:
+            engine = create_engine(self.conn_string)
+            self._create_table_from_csv(path, conn, engine, table_name, drop_old_table)
+            self._stream_from_file_to_psql(path, conn, table_name)
 
     @staticmethod
     def _execute_command(cursor, command, conn):
