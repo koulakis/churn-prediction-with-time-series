@@ -56,8 +56,6 @@ class TransactionManager:
             except Exception as e:
                 print(e)
                 conn.rollback()
-            finally:
-                conn.close()
 
     def import_csv_to_table(self, path, table_name=None, drop_old_table=False):
         """Import a csv file to a table in the database.
@@ -106,4 +104,3 @@ class TransactionManager:
                     conn.commit()
                 except Exception as e:
                     print(f'Failed to ingest {path.stem}: {e}')
-                    conn.rollback()
