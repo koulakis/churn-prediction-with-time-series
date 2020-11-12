@@ -30,6 +30,7 @@ setuptools.setup(
         'seaborn',
         'sklearn',
         'tqdm',
+        'scikit-optimize'
     ],
     python_requires='>=3.6'
 )
