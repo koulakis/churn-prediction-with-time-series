@@ -44,12 +44,18 @@ class TransactionManager:
         Returns:
             A dataframe containing the output table of the query.
         """
+        if query.endswith(';'):
+            query = query[:-1]
         copy_sql = f'COPY ({query}) TO STDOUT WITH CSV HEADER;'
-        with self.conn.cursor() as cursor:
-            cache = io.StringIO()
-            cursor.copy_expert(copy_sql, cache)
-            cache.seek(0)
-            return pd.read_csv(cache)
+        try:
+            with self.conn.cursor() as cursor:
+                with io.StringIO() as cache:
+                    cursor.copy_expert(copy_sql, cache)
+                    cache.seek(0)
+                    return pd.read_csv(cache)
+        except Exception as e:
+            print(e)
+            self.conn.rollback()
 
     def import_csv_to_table(self, path, table_name=None, drop_old_table=False):
         """Import a csv file to a table in the database.
