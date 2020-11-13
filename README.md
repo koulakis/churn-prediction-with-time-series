@@ -50,5 +50,3 @@ examples of such cluster of series. The centroid appears on the left and some sa
 The clustering was performed on a latent space of size 4 fitting a Gaussian mixture with 100 components. The clusters
 seem to have well defined patterns.
 
-## Predicting using the generated features
-
